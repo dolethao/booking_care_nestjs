@@ -1,47 +1,58 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Doctor, DoctorDocument } from './schemas/doctor.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Doctor } from '../../entities/doctor.entity';
 import { CreateDoctorDto } from './dto/create-doctor.dto';
 import { UpdateDoctorDto } from './dto/update-doctor.dto';
 
 @Injectable()
 export class DoctorsService {
   constructor(
-    @InjectModel(Doctor.name) private doctorModel: Model<DoctorDocument>,
+    @InjectRepository(Doctor)
+    private doctorRepository: Repository<Doctor>,
   ) {}
 
   async create(createDoctorDto: CreateDoctorDto): Promise<Doctor> {
-    const createdDoctor = new this.doctorModel(createDoctorDto);
-    return createdDoctor.save();
+    const createdDoctor = this.doctorRepository.create(createDoctorDto);
+    return this.doctorRepository.save(createdDoctor);
   }
 
   async findAll(): Promise<Doctor[]> {
-    return this.doctorModel.find().exec();
+    return this.doctorRepository.find({
+      relations: ['doctor', 'specialty', 'clinic']
+    });
   }
 
-  async findOne(id: string): Promise<Doctor> {
-    const doctor = await this.doctorModel.findById(id).exec();
+  async findOne(id: number): Promise<Doctor> {
+    const doctor = await this.doctorRepository.findOne({
+      where: { id },
+      relations: ['doctor', 'specialty', 'clinic']
+    });
     if (!doctor) {
       throw new NotFoundException('Doctor không tồn tại!');
     }
     return doctor;
   }
 
-  async update(id: string, updateDoctorDto: UpdateDoctorDto): Promise<Doctor> {
-    const updatedDoctor = await this.doctorModel
-      .findByIdAndUpdate(id, updateDoctorDto, { new: true })
-      .exec();
-    if (!updatedDoctor) {
+  async update(id: number, updateDoctorDto: UpdateDoctorDto): Promise<Doctor> {
+    const doctor = await this.doctorRepository.findOne({ where: { id } });
+    if (!doctor) {
       throw new NotFoundException('Doctor không tồn tại!');
     }
-    return updatedDoctor;
+    
+    await this.doctorRepository.update(id, updateDoctorDto);
+    const updatedDoctor = await this.doctorRepository.findOne({
+      where: { id },
+      relations: ['doctor', 'specialty', 'clinic']
+    });
+    return updatedDoctor!;
   }
 
-  async remove(id: string): Promise<void> {
-    const result = await this.doctorModel.findByIdAndDelete(id).exec();
-    if (!result) {
+  async remove(id: number): Promise<void> {
+    const doctor = await this.doctorRepository.findOne({ where: { id } });
+    if (!doctor) {
       throw new NotFoundException('Doctor không tồn tại!');
     }
+    await this.doctorRepository.delete(id);
   }
 } 

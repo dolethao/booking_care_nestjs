@@ -1,47 +1,50 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Allcode, AllcodeDocument } from './schemas/allcode.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Allcode } from '../../entities/allcode.entity';
 import { CreateAllcodeDto } from './dto/create-allcode.dto';
 import { UpdateAllcodeDto } from './dto/update-allcode.dto';
 
 @Injectable()
 export class AllcodesService {
   constructor(
-    @InjectModel(Allcode.name) private allcodeModel: Model<AllcodeDocument>,
+    @InjectRepository(Allcode)
+    private allcodeRepository: Repository<Allcode>,
   ) {}
 
   async create(createAllcodeDto: CreateAllcodeDto): Promise<Allcode> {
-    const createdAllcode = new this.allcodeModel(createAllcodeDto);
-    return createdAllcode.save();
+    const createdAllcode = this.allcodeRepository.create(createAllcodeDto);
+    return this.allcodeRepository.save(createdAllcode);
   }
 
   async findAll(): Promise<Allcode[]> {
-    return this.allcodeModel.find().exec();
+    return this.allcodeRepository.find();
   }
 
-  async findOne(id: string): Promise<Allcode> {
-    const allcode = await this.allcodeModel.findById(id).exec();
+  async findOne(id: number): Promise<Allcode> {
+    const allcode = await this.allcodeRepository.findOne({ where: { id } });
     if (!allcode) {
       throw new NotFoundException('Allcode không tồn tại!');
     }
     return allcode;
   }
 
-  async update(id: string, updateAllcodeDto: UpdateAllcodeDto): Promise<Allcode> {
-    const updatedAllcode = await this.allcodeModel
-      .findByIdAndUpdate(id, updateAllcodeDto, { new: true })
-      .exec();
-    if (!updatedAllcode) {
+  async update(id: number, updateAllcodeDto: UpdateAllcodeDto): Promise<Allcode> {
+    const allcode = await this.allcodeRepository.findOne({ where: { id } });
+    if (!allcode) {
       throw new NotFoundException('Allcode không tồn tại!');
     }
-    return updatedAllcode;
+    
+    await this.allcodeRepository.update(id, updateAllcodeDto);
+    const updatedAllcode = await this.allcodeRepository.findOne({ where: { id } });
+    return updatedAllcode!;
   }
 
-  async remove(id: string): Promise<void> {
-    const result = await this.allcodeModel.findByIdAndDelete(id).exec();
-    if (!result) {
+  async remove(id: number): Promise<void> {
+    const allcode = await this.allcodeRepository.findOne({ where: { id } });
+    if (!allcode) {
       throw new NotFoundException('Allcode không tồn tại!');
     }
+    await this.allcodeRepository.delete(id);
   }
 } 

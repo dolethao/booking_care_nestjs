@@ -1,19 +1,24 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
 
 export class CreateHistoryDto {
-  @IsString()
+  @IsNumber()
   @IsNotEmpty()
-  patienId: string;
+  @ApiProperty({ description: 'patientId' })
+  patientId: number;
 
-  @IsString()
+  @IsNumber()
   @IsNotEmpty()
-  doctorId: string;
+  @ApiProperty({ description: 'doctorId' })
+  doctorId: number;
 
   @IsString()
   @IsOptional()
+  @ApiProperty({ description: 'description', required: false })
   description?: string;
 
   @IsString()
   @IsOptional()
+  @ApiProperty({ description: 'files', required: false })
   files?: string;
 } 

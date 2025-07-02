@@ -1,27 +1,34 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
 
 export class CreateMarkdownDto {
   @IsString()
   @IsOptional()
+  @ApiProperty({ description: 'contentHTML', required: false })
   contentHTML?: string;
 
   @IsString()
   @IsOptional()
+  @ApiProperty({ description: 'contentMarkdown', required: false })
   contentMarkdown?: string;
 
   @IsString()
   @IsOptional()
+  @ApiProperty({ description: 'description', required: false })
   description?: string;
 
-  @IsString()
+  @IsNumber()
   @IsNotEmpty()
-  doctorId: string;
+  @ApiProperty({ description: 'doctorId' })
+  doctorId: number;
 
-  @IsString()
+  @IsNumber()
   @IsOptional()
-  specialtyId?: string;
+  @ApiProperty({ description: 'specialtyId', required: false })
+  specialtyId?: number;
 
-  @IsString()
+  @IsNumber()
   @IsOptional()
-  clinicId?: string;
+  @ApiProperty({ description: 'clinicId', required: false })
+  clinicId?: number;
 } 

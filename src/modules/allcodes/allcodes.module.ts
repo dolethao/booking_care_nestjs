@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AllcodesService } from './allcodes.service';
 import { AllcodesController } from './allcodes.controller';
-import { Allcode, AllcodeSchema } from './schemas/allcode.schema';
+import { Allcode } from '../../entities/allcode.entity';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Allcode.name, schema: AllcodeSchema }]),
+    TypeOrmModule.forFeature([Allcode]),
   ],
   controllers: [AllcodesController],
   providers: [AllcodesService],

@@ -1,47 +1,50 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Specialty, SpecialtyDocument } from './schemas/specialty.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Specialty } from '../../entities/specialty.entity';
 import { CreateSpecialtyDto } from './dto/create-specialty.dto';
 import { UpdateSpecialtyDto } from './dto/update-specialty.dto';
 
 @Injectable()
 export class SpecialtiesService {
   constructor(
-    @InjectModel(Specialty.name) private specialtyModel: Model<SpecialtyDocument>,
+    @InjectRepository(Specialty)
+    private specialtyRepository: Repository<Specialty>,
   ) {}
 
   async create(createSpecialtyDto: CreateSpecialtyDto): Promise<Specialty> {
-    const createdSpecialty = new this.specialtyModel(createSpecialtyDto);
-    return createdSpecialty.save();
+    const createdSpecialty = this.specialtyRepository.create(createSpecialtyDto);
+    return this.specialtyRepository.save(createdSpecialty);
   }
 
   async findAll(): Promise<Specialty[]> {
-    return this.specialtyModel.find().exec();
+    return this.specialtyRepository.find();
   }
 
-  async findOne(id: string): Promise<Specialty> {
-    const specialty = await this.specialtyModel.findById(id).exec();
+  async findOne(id: number): Promise<Specialty> {
+    const specialty = await this.specialtyRepository.findOne({ where: { id } });
     if (!specialty) {
       throw new NotFoundException('Specialty không tồn tại!');
     }
     return specialty;
   }
 
-  async update(id: string, updateSpecialtyDto: UpdateSpecialtyDto): Promise<Specialty> {
-    const updatedSpecialty = await this.specialtyModel
-      .findByIdAndUpdate(id, updateSpecialtyDto, { new: true })
-      .exec();
-    if (!updatedSpecialty) {
+  async update(id: number, updateSpecialtyDto: UpdateSpecialtyDto): Promise<Specialty> {
+    const specialty = await this.specialtyRepository.findOne({ where: { id } });
+    if (!specialty) {
       throw new NotFoundException('Specialty không tồn tại!');
     }
-    return updatedSpecialty;
+    
+    await this.specialtyRepository.update(id, updateSpecialtyDto);
+    const updatedSpecialty = await this.specialtyRepository.findOne({ where: { id } });
+    return updatedSpecialty!;
   }
 
-  async remove(id: string): Promise<void> {
-    const result = await this.specialtyModel.findByIdAndDelete(id).exec();
-    if (!result) {
+  async remove(id: number): Promise<void> {
+    const specialty = await this.specialtyRepository.findOne({ where: { id } });
+    if (!specialty) {
       throw new NotFoundException('Specialty không tồn tại!');
     }
+    await this.specialtyRepository.delete(id);
   }
 } 

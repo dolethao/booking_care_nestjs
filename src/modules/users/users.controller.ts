@@ -13,7 +13,7 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
-import { User } from './schemas/user.schema';
+import { User } from '../../entities/user.entity';
 
 @ApiTags('users')
 @Controller('users')
@@ -21,7 +21,6 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post('login')
-  @ApiOperation({ summary: 'Đăng nhập người dùng' })
   @ApiResponse({ status: 200, description: 'Đăng nhập thành công' })
   @ApiResponse({ status: 401, description: 'Thông tin đăng nhập không đúng' })
   async login(@Body() loginUserDto: LoginUserDto) {
@@ -30,15 +29,13 @@ export class UsersController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Tạo người dùng mới' })
-  @ApiResponse({ status: 201, description: 'Tạo thành công', type: User })
+  @ApiResponse({ status: 201, description: 'Tạo thành công', type: CreateUserDto })
   async create(@Body() createUserDto: CreateUserDto) {
     const result = await this.usersService.create(createUserDto);
     return result;
   }
 
   @Get()
-  @ApiOperation({ summary: 'Lấy danh sách người dùng' })
   @ApiResponse({ status: 200, description: 'Thành công', type: [User] })
   async findAll(@Query('id') id: string) {
     if (id) {
@@ -53,28 +50,28 @@ export class UsersController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Lấy thông tin người dùng theo ID' })
   @ApiResponse({ status: 200, description: 'Thành công', type: User })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
+    const userId = parseInt(id);
+    return this.usersService.findOne(userId);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Cập nhật thông tin người dùng' })
-  @ApiResponse({ status: 200, description: 'Cập nhật thành công', type: User })
+  @ApiResponse({ status: 200, description: 'Cập nhật thành công', type: UpdateUserDto })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    const result = await this.usersService.update(id, updateUserDto);
+    const userId = parseInt(id);
+    const result = await this.usersService.update(userId, updateUserDto);
     return result;
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Xóa người dùng' })
   @ApiResponse({ status: 200, description: 'Xóa thành công' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy' })
   async remove(@Param('id') id: string) {
-    const result = await this.usersService.remove(id);
+    const userId = parseInt(id);
+    const result = await this.usersService.remove(userId);
     return result;
   }
 } 

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
+import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './modules/users/users.module';
@@ -12,16 +12,17 @@ import { BookingsModule } from './modules/bookings/bookings.module';
 import { AllcodesModule } from './modules/allcodes/allcodes.module';
 import { MarkdownsModule } from './modules/markdowns/markdowns.module';
 import { HistoriesModule } from './modules/histories/histories.module';
+import * as entities from './entities';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    MongooseModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGODB_URI') || 'mongodb://localhost:27017/booking-care',
-      }),
-      inject: [ConfigService],
+    TypeOrmModule.forRoot({
+      type: 'sqlite',
+      database: 'database.sqlite',
+      entities: Object.values(entities),
+      synchronize: true,
+      logging: false
     }),
     UsersModule,
     DoctorsModule,

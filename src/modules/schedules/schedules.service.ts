@@ -1,47 +1,58 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Schedule, ScheduleDocument } from './schemas/schedule.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Schedule } from '../../entities/schedule.entity';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 
 @Injectable()
 export class SchedulesService {
   constructor(
-    @InjectModel(Schedule.name) private scheduleModel: Model<ScheduleDocument>,
+    @InjectRepository(Schedule)
+    private scheduleRepository: Repository<Schedule>,
   ) {}
 
   async create(createScheduleDto: CreateScheduleDto): Promise<Schedule> {
-    const createdSchedule = new this.scheduleModel(createScheduleDto);
-    return createdSchedule.save();
+    const createdSchedule = this.scheduleRepository.create(createScheduleDto);
+    return this.scheduleRepository.save(createdSchedule);
   }
 
   async findAll(): Promise<Schedule[]> {
-    return this.scheduleModel.find().exec();
+    return this.scheduleRepository.find({
+      relations: ['doctor']
+    });
   }
 
-  async findOne(id: string): Promise<Schedule> {
-    const schedule = await this.scheduleModel.findById(id).exec();
+  async findOne(id: number): Promise<Schedule> {
+    const schedule = await this.scheduleRepository.findOne({
+      where: { id },
+      relations: ['doctor']
+    });
     if (!schedule) {
       throw new NotFoundException('Schedule không tồn tại!');
     }
     return schedule;
   }
 
-  async update(id: string, updateScheduleDto: UpdateScheduleDto): Promise<Schedule> {
-    const updatedSchedule = await this.scheduleModel
-      .findByIdAndUpdate(id, updateScheduleDto, { new: true })
-      .exec();
-    if (!updatedSchedule) {
+  async update(id: number, updateScheduleDto: UpdateScheduleDto): Promise<Schedule> {
+    const schedule = await this.scheduleRepository.findOne({ where: { id } });
+    if (!schedule) {
       throw new NotFoundException('Schedule không tồn tại!');
     }
-    return updatedSchedule;
+    
+    await this.scheduleRepository.update(id, updateScheduleDto);
+    const updatedSchedule = await this.scheduleRepository.findOne({
+      where: { id },
+      relations: ['doctor']
+    });
+    return updatedSchedule!;
   }
 
-  async remove(id: string): Promise<void> {
-    const result = await this.scheduleModel.findByIdAndDelete(id).exec();
-    if (!result) {
+  async remove(id: number): Promise<void> {
+    const schedule = await this.scheduleRepository.findOne({ where: { id } });
+    if (!schedule) {
       throw new NotFoundException('Schedule không tồn tại!');
     }
+    await this.scheduleRepository.delete(id);
   }
 } 

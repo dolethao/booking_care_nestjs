@@ -1,47 +1,58 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Markdown, MarkdownDocument } from './schemas/markdown.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Markdown } from '../../entities/markdown.entity';
 import { CreateMarkdownDto } from './dto/create-markdown.dto';
 import { UpdateMarkdownDto } from './dto/update-markdown.dto';
 
 @Injectable()
 export class MarkdownsService {
   constructor(
-    @InjectModel(Markdown.name) private markdownModel: Model<MarkdownDocument>,
+    @InjectRepository(Markdown)
+    private markdownRepository: Repository<Markdown>,
   ) {}
 
   async create(createMarkdownDto: CreateMarkdownDto): Promise<Markdown> {
-    const createdMarkdown = new this.markdownModel(createMarkdownDto);
-    return createdMarkdown.save();
+    const createdMarkdown = this.markdownRepository.create(createMarkdownDto);
+    return this.markdownRepository.save(createdMarkdown);
   }
 
   async findAll(): Promise<Markdown[]> {
-    return this.markdownModel.find().exec();
+    return this.markdownRepository.find({
+      relations: ['doctor', 'specialty', 'clinic']
+    });
   }
 
-  async findOne(id: string): Promise<Markdown> {
-    const markdown = await this.markdownModel.findById(id).exec();
+  async findOne(id: number): Promise<Markdown> {
+    const markdown = await this.markdownRepository.findOne({
+      where: { id },
+      relations: ['doctor', 'specialty', 'clinic']
+    });
     if (!markdown) {
       throw new NotFoundException('Markdown không tồn tại!');
     }
     return markdown;
   }
 
-  async update(id: string, updateMarkdownDto: UpdateMarkdownDto): Promise<Markdown> {
-    const updatedMarkdown = await this.markdownModel
-      .findByIdAndUpdate(id, updateMarkdownDto, { new: true })
-      .exec();
-    if (!updatedMarkdown) {
+  async update(id: number, updateMarkdownDto: UpdateMarkdownDto): Promise<Markdown> {
+    const markdown = await this.markdownRepository.findOne({ where: { id } });
+    if (!markdown) {
       throw new NotFoundException('Markdown không tồn tại!');
     }
-    return updatedMarkdown;
+    
+    await this.markdownRepository.update(id, updateMarkdownDto);
+    const updatedMarkdown = await this.markdownRepository.findOne({
+      where: { id },
+      relations: ['doctor', 'specialty', 'clinic']
+    });
+    return updatedMarkdown!;
   }
 
-  async remove(id: string): Promise<void> {
-    const result = await this.markdownModel.findByIdAndDelete(id).exec();
-    if (!result) {
+  async remove(id: number): Promise<void> {
+    const markdown = await this.markdownRepository.findOne({ where: { id } });
+    if (!markdown) {
       throw new NotFoundException('Markdown không tồn tại!');
     }
+    await this.markdownRepository.delete(id);
   }
 } 

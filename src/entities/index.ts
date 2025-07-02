@@ -1,0 +1,9 @@
+export { User } from './user.entity';
+export { Allcode } from './allcode.entity';
+export { Doctor } from './doctor.entity';
+export { Booking } from './booking.entity';
+export { Specialty } from './specialty.entity';
+export { Clinic } from './clinic.entity';
+export { Schedule } from './schedule.entity';
+export { Markdown } from './markdown.entity';
+export { History } from './history.entity'; 

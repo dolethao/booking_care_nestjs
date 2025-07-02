@@ -1,47 +1,50 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Clinic, ClinicDocument } from './schemas/clinic.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Clinic } from '../../entities/clinic.entity';
 import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
 
 @Injectable()
 export class ClinicsService {
   constructor(
-    @InjectModel(Clinic.name) private clinicModel: Model<ClinicDocument>,
+    @InjectRepository(Clinic)
+    private clinicRepository: Repository<Clinic>,
   ) {}
 
   async create(createClinicDto: CreateClinicDto): Promise<Clinic> {
-    const createdClinic = new this.clinicModel(createClinicDto);
-    return createdClinic.save();
+    const createdClinic = this.clinicRepository.create(createClinicDto);
+    return this.clinicRepository.save(createdClinic);
   }
 
   async findAll(): Promise<Clinic[]> {
-    return this.clinicModel.find().exec();
+    return this.clinicRepository.find();
   }
 
-  async findOne(id: string): Promise<Clinic> {
-    const clinic = await this.clinicModel.findById(id).exec();
+  async findOne(id: number): Promise<Clinic> {
+    const clinic = await this.clinicRepository.findOne({ where: { id } });
     if (!clinic) {
       throw new NotFoundException('Clinic không tồn tại!');
     }
     return clinic;
   }
 
-  async update(id: string, updateClinicDto: UpdateClinicDto): Promise<Clinic> {
-    const updatedClinic = await this.clinicModel
-      .findByIdAndUpdate(id, updateClinicDto, { new: true })
-      .exec();
-    if (!updatedClinic) {
+  async update(id: number, updateClinicDto: UpdateClinicDto): Promise<Clinic> {
+    const clinic = await this.clinicRepository.findOne({ where: { id } });
+    if (!clinic) {
       throw new NotFoundException('Clinic không tồn tại!');
     }
-    return updatedClinic;
+    
+    await this.clinicRepository.update(id, updateClinicDto);
+    const updatedClinic = await this.clinicRepository.findOne({ where: { id } });
+    return updatedClinic!;
   }
 
-  async remove(id: string): Promise<void> {
-    const result = await this.clinicModel.findByIdAndDelete(id).exec();
-    if (!result) {
+  async remove(id: number): Promise<void> {
+    const clinic = await this.clinicRepository.findOne({ where: { id } });
+    if (!clinic) {
       throw new NotFoundException('Clinic không tồn tại!');
     }
+    await this.clinicRepository.delete(id);
   }
 } 

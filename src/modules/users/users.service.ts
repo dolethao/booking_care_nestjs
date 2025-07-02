@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { User, UserDocument } from './schemas/user.schema';
+import { User } from '../../entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -10,13 +10,16 @@ import { LoginUserDto } from './dto/login-user.dto';
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<any> {
     try {
       // Check if user already exists
-      const existingUser = await this.userModel.findOne({ email: createUserDto.email });
+      const existingUser = await this.userRepository.findOne({ 
+        where: { email: createUserDto.email } 
+      });
       if (existingUser) {
         return {
           errCode: 1,
@@ -27,13 +30,13 @@ export class UsersService {
       // Hash password
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
-      const createdUser = new this.userModel({
+      const createdUser = this.userRepository.create({
         ...createUserDto,
         password: hashedPassword,
       });
 
-      const savedUser = await createdUser.save();
-      const { password, ...result } = savedUser.toObject();
+      const savedUser = await this.userRepository.save(createdUser);
+      const { password, ...result } = savedUser;
 
       return {
         errCode: 0,
@@ -49,20 +52,51 @@ export class UsersService {
   }
 
   async findAll(): Promise<User[]> {
-    return this.userModel.find().select('-password').exec();
+    return this.userRepository.find({
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        address: true,
+        phoneNumber: true,
+        gender: true,
+        image: true,
+        roleId: true,
+        positionId: true,
+        createdAt: true,
+        updatedAt: true,
+      }
+    });
   }
 
-  async findOne(id: string): Promise<User> {
-    const user = await this.userModel.findById(id).select('-password').exec();
+  async findOne(id: number): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        address: true,
+        phoneNumber: true,
+        gender: true,
+        image: true,
+        roleId: true,
+        positionId: true,
+        createdAt: true,
+        updatedAt: true,
+      }
+    });
     if (!user) {
       throw new NotFoundException('User không tồn tại!');
     }
     return user;
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<any> {
+  async update(id: number, updateUserDto: UpdateUserDto): Promise<any> {
     try {
-      const user = await this.userModel.findById(id);
+      const user = await this.userRepository.findOne({ where: { id } });
       if (!user) {
         return {
           errCode: 1,
@@ -75,10 +109,24 @@ export class UsersService {
         updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
       }
 
-      const updatedUser = await this.userModel
-        .findByIdAndUpdate(id, updateUserDto, { new: true })
-        .select('-password')
-        .exec();
+      await this.userRepository.update(id, updateUserDto);
+      const updatedUser = await this.userRepository.findOne({
+        where: { id },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          address: true,
+          phoneNumber: true,
+          gender: true,
+          image: true,
+          roleId: true,
+          positionId: true,
+          createdAt: true,
+          updatedAt: true,
+        }
+      });
 
       return {
         errCode: 0,
@@ -93,9 +141,9 @@ export class UsersService {
     }
   }
 
-  async remove(id: string): Promise<any> {
+  async remove(id: number): Promise<any> {
     try {
-      const user = await this.userModel.findById(id);
+      const user = await this.userRepository.findOne({ where: { id } });
       if (!user) {
         return {
           errCode: 1,
@@ -103,7 +151,7 @@ export class UsersService {
         };
       }
 
-      await this.userModel.findByIdAndDelete(id);
+      await this.userRepository.delete(id);
       return {
         errCode: 0,
         errMessage: 'Xóa user thành công!',
@@ -127,7 +175,7 @@ export class UsersService {
         };
       }
 
-      const user = await this.userModel.findOne({ email });
+      const user = await this.userRepository.findOne({ where: { email } });
       if (!user) {
         return {
           errCode: 1,
@@ -143,7 +191,7 @@ export class UsersService {
         };
       }
 
-      const { password: _, ...result } = user.toObject();
+      const { password: _, ...result } = user;
       return {
         errCode: 0,
         errMessage: 'Đăng nhập thành công!',
@@ -160,10 +208,44 @@ export class UsersService {
   async getAllUsers(id: string): Promise<any> {
     try {
       if (id === 'ALL') {
-        const users = await this.userModel.find().select('-password').exec();
+        const users = await this.userRepository.find({
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            address: true,
+            phoneNumber: true,
+            gender: true,
+            image: true,
+            roleId: true,
+            positionId: true,
+            createdAt: true,
+            updatedAt: true,
+          }
+        });
         return users;
       } else {
-        const user = await this.userModel.findById(id).select('-password').exec();
+        const userId = parseInt(id);
+        if (isNaN(userId)) return [];
+        
+        const user = await this.userRepository.findOne({
+          where: { id: userId },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            address: true,
+            phoneNumber: true,
+            gender: true,
+            image: true,
+            roleId: true,
+            positionId: true,
+            createdAt: true,
+            updatedAt: true,
+          }
+        });
         return user ? [user] : [];
       }
     } catch (error) {

@@ -1,47 +1,58 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { History, HistoryDocument } from './schemas/history.schema';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { History } from '../../entities/history.entity';
 import { CreateHistoryDto } from './dto/create-history.dto';
 import { UpdateHistoryDto } from './dto/update-history.dto';
 
 @Injectable()
 export class HistoriesService {
   constructor(
-    @InjectModel(History.name) private historyModel: Model<HistoryDocument>,
+    @InjectRepository(History)
+    private historyRepository: Repository<History>,
   ) {}
 
   async create(createHistoryDto: CreateHistoryDto): Promise<History> {
-    const createdHistory = new this.historyModel(createHistoryDto);
-    return createdHistory.save();
+    const createdHistory = this.historyRepository.create(createHistoryDto);
+    return this.historyRepository.save(createdHistory);
   }
 
   async findAll(): Promise<History[]> {
-    return this.historyModel.find().exec();
+    return this.historyRepository.find({
+      relations: ['patient', 'doctor']
+    });
   }
 
-  async findOne(id: string): Promise<History> {
-    const history = await this.historyModel.findById(id).exec();
+  async findOne(id: number): Promise<History> {
+    const history = await this.historyRepository.findOne({
+      where: { id },
+      relations: ['patient', 'doctor']
+    });
     if (!history) {
       throw new NotFoundException('History không tồn tại!');
     }
     return history;
   }
 
-  async update(id: string, updateHistoryDto: UpdateHistoryDto): Promise<History> {
-    const updatedHistory = await this.historyModel
-      .findByIdAndUpdate(id, updateHistoryDto, { new: true })
-      .exec();
-    if (!updatedHistory) {
+  async update(id: number, updateHistoryDto: UpdateHistoryDto): Promise<History> {
+    const history = await this.historyRepository.findOne({ where: { id } });
+    if (!history) {
       throw new NotFoundException('History không tồn tại!');
     }
-    return updatedHistory;
+    
+    await this.historyRepository.update(id, updateHistoryDto);
+    const updatedHistory = await this.historyRepository.findOne({
+      where: { id },
+      relations: ['patient', 'doctor']
+    });
+    return updatedHistory!;
   }
 
-  async remove(id: string): Promise<void> {
-    const result = await this.historyModel.findByIdAndDelete(id).exec();
-    if (!result) {
+  async remove(id: number): Promise<void> {
+    const history = await this.historyRepository.findOne({ where: { id } });
+    if (!history) {
       throw new NotFoundException('History không tồn tại!');
     }
+    await this.historyRepository.delete(id);
   }
 } 
