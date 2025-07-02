@@ -8,10 +8,10 @@ async function bootstrap() {
 
 
   // Enable CORS
-  app.enableCors({
-    origin: process.env.URL_REACT || 'http://localhost:3000',
-    credentials: true,
-  });
+  // app.enableCors({
+  //   origin: process.env.URL_REACT || 'http://localhost:8080',
+  //   credentials: true,
+  // });
 
   // Global validation pipe
   app.useGlobalPipes(new ValidationPipe());
@@ -28,7 +28,6 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   await app.listen(process.env.PORT ?? 8000);
-  console.log(`Application is running on: http://localhost:${process.env.PORT}`);
   console.log(`Swagger documentation is available at: http://localhost:${process.env.PORT}/api`);
 }
 bootstrap();

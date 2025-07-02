@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { DoctorsModule } from './modules/doctors/doctors.module';
 import { ClinicsModule } from './modules/clinics/clinics.module';
@@ -12,6 +13,7 @@ import { BookingsModule } from './modules/bookings/bookings.module';
 import { AllcodesModule } from './modules/allcodes/allcodes.module';
 import { MarkdownsModule } from './modules/markdowns/markdowns.module';
 import { HistoriesModule } from './modules/histories/histories.module';
+import { LoggerMiddleware } from './helpers/logger.middleware';
 import * as entities from './entities';
 
 @Module({
@@ -22,8 +24,9 @@ import * as entities from './entities';
       database: 'database.sqlite',
       entities: Object.values(entities),
       synchronize: true,
-      logging: false
+      logging: ['warn', 'error']
     }),
+    AuthModule,
     UsersModule,
     DoctorsModule,
     ClinicsModule,
@@ -37,4 +40,10 @@ import * as entities from './entities';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoggerMiddleware)
+      .forRoutes('*');
+  }
+}

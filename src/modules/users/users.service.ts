@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { User } from '../../entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -12,22 +13,17 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private jwtService: JwtService,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<any> {
+  async create(createUserDto: CreateUserDto): Promise<Omit<User, "password">> {
     try {
-      // Check if user already exists
       const existingUser = await this.userRepository.findOne({ 
         where: { email: createUserDto.email } 
       });
       if (existingUser) {
-        return {
-          errCode: 1,
-          errMessage: 'Email đã tồn tại!',
-        };
+        throw new BadRequestException(`Email ${createUserDto.email} already exists!`);
       }
-
-      // Hash password
       const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
       const createdUser = this.userRepository.create({
@@ -38,16 +34,9 @@ export class UsersService {
       const savedUser = await this.userRepository.save(createdUser);
       const { password, ...result } = savedUser;
 
-      return {
-        errCode: 0,
-        errMessage: 'Tạo user thành công!',
-        user: result,
-      };
+      return result;
     } catch (error) {
-      return {
-        errCode: 1,
-        errMessage: 'Có lỗi xảy ra!',
-      };
+      throw new BadRequestException('An error occurred!', error.message);
     }
   }
 
@@ -89,7 +78,7 @@ export class UsersService {
       }
     });
     if (!user) {
-      throw new NotFoundException('User không tồn tại!');
+      throw new NotFoundException('User not found!');
     }
     return user;
   }
@@ -98,13 +87,9 @@ export class UsersService {
     try {
       const user = await this.userRepository.findOne({ where: { id } });
       if (!user) {
-        return {
-          errCode: 1,
-          errMessage: 'User không tồn tại!',
-        };
+        throw new NotFoundException('User not found!');
       }
 
-      // If password is being updated, hash it
       if (updateUserDto.password) {
         updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
       }
@@ -128,16 +113,9 @@ export class UsersService {
         }
       });
 
-      return {
-        errCode: 0,
-        errMessage: 'Cập nhật user thành công!',
-        user: updatedUser,
-      };
+      return updatedUser;
     } catch (error) {
-      return {
-        errCode: 1,
-        errMessage: 'Có lỗi xảy ra!',
-      };
+      throw new BadRequestException('An error occurred!', error.message);
     }
   }
 
@@ -145,22 +123,12 @@ export class UsersService {
     try {
       const user = await this.userRepository.findOne({ where: { id } });
       if (!user) {
-        return {
-          errCode: 1,
-          errMessage: 'User không tồn tại!',
-        };
+        throw new NotFoundException('User not found!');
       }
 
-      await this.userRepository.delete(id);
-      return {
-        errCode: 0,
-        errMessage: 'Xóa user thành công!',
-      };
+     return await this.userRepository.delete(id);
     } catch (error) {
-      return {
-        errCode: 1,
-        errMessage: 'Có lỗi xảy ra!',
-      };
+      throw new BadRequestException('An error occurred!', error.message);
     }
   }
 
@@ -169,39 +137,30 @@ export class UsersService {
       const { email, password } = loginUserDto;
 
       if (!email || !password) {
-        return {
-          errCode: 1,
-          errMessage: 'Thiếu thông tin đăng nhập!',
-        };
+        throw new BadRequestException('Email and password are required!');
       }
 
       const user = await this.userRepository.findOne({ where: { email } });
       if (!user) {
-        return {
-          errCode: 1,
-          errMessage: 'Email không tồn tại!',
-        };
+        throw new BadRequestException('Email or password is incorrect!');
       }
 
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
-        return {
-          errCode: 1,
-          errMessage: 'Mật khẩu không đúng!',
-        };
+        throw new BadRequestException('Email or password is incorrect!');
       }
 
       const { password: _, ...result } = user;
+      
+      const payload = { email: user.email, sub: user.id };
+      const access_token = this.jwtService.sign(payload);
+      
       return {
-        errCode: 0,
-        errMessage: 'Đăng nhập thành công!',
         user: result,
+        access_token,
       };
     } catch (error) {
-      return {
-        errCode: 1,
-        errMessage: 'Có lỗi xảy ra!',
-      };
+      throw new BadRequestException('An error occurred!', error.message);
     }
   }
 

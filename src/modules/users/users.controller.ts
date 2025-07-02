@@ -7,8 +7,11 @@ import {
   Param,
   Delete,
   Query,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -21,45 +24,40 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post('login')
-  @ApiResponse({ status: 200, description: 'Đăng nhập thành công' })
-  @ApiResponse({ status: 401, description: 'Thông tin đăng nhập không đúng' })
+  @ApiResponse({ status: 200 })
   async login(@Body() loginUserDto: LoginUserDto) {
     const result = await this.usersService.login(loginUserDto);
     return result;
   }
 
   @Post()
-  @ApiResponse({ status: 201, description: 'Tạo thành công', type: CreateUserDto })
-  async create(@Body() createUserDto: CreateUserDto) {
+  @ApiResponse({ status: 201, type: CreateUserDto })
+  async create(@Body() createUserDto: CreateUserDto): Promise<Omit<User, "password">> {
     const result = await this.usersService.create(createUserDto);
     return result;
   }
 
   @Get()
-  @ApiResponse({ status: 200, description: 'Thành công', type: [User] })
-  async findAll(@Query('id') id: string) {
-    if (id) {
-      const users = await this.usersService.getAllUsers(id);
-      return {
-        errCode: 0,
-        errMessage: 'Ok',
-        user: users,
-      };
-    }
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, type: [User] })
+  async findAll(): Promise<Omit<User, "password">[]> {
     return this.usersService.findAll();
   }
 
   @Get(':id')
-  @ApiResponse({ status: 200, description: 'Thành công', type: User })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, type: User })
   findOne(@Param('id') id: string) {
     const userId = parseInt(id);
     return this.usersService.findOne(userId);
   }
 
   @Patch(':id')
-  @ApiResponse({ status: 200, description: 'Cập nhật thành công', type: UpdateUserDto })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, type: UpdateUserDto })
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     const userId = parseInt(id);
     const result = await this.usersService.update(userId, updateUserDto);
@@ -67,8 +65,9 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @ApiResponse({ status: 200, description: 'Xóa thành công' })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200 })
   async remove(@Param('id') id: string) {
     const userId = parseInt(id);
     const result = await this.usersService.remove(userId);

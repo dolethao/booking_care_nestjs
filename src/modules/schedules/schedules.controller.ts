@@ -7,7 +7,7 @@ import {
   Param,
   Delete,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { SchedulesService } from './schedules.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
@@ -19,36 +19,36 @@ export class SchedulesController {
   constructor(private readonly schedulesService: SchedulesService) {}
 
   @Post()
-  @ApiResponse({ status: 201, description: 'Tạo thành công', type: CreateScheduleDto })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 201, type: CreateScheduleDto })
   create(@Body() createScheduleDto: CreateScheduleDto) {
     return this.schedulesService.create(createScheduleDto);
   }
 
   @Get()
-  @ApiResponse({ status: 200, description: 'Thành công', type: [Schedule] })
+  @ApiResponse({ status: 200, type: [Schedule] })
   findAll() {
     return this.schedulesService.findAll();
   }
 
   @Get(':id')
-  @ApiResponse({ status: 200, description: 'Thành công', type: Schedule })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy' })
+  @ApiResponse({ status: 200, type: Schedule })
   findOne(@Param('id') id: string) {
     const scheduleId = parseInt(id);
     return this.schedulesService.findOne(scheduleId);
   }
 
   @Patch(':id')
-  @ApiResponse({ status: 200, description: 'Cập nhật thành công', type: UpdateScheduleDto })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy' })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, type: UpdateScheduleDto })
   update(@Param('id') id: string, @Body() updateScheduleDto: UpdateScheduleDto) {
     const scheduleId = parseInt(id);
     return this.schedulesService.update(scheduleId, updateScheduleDto);
   }
 
   @Delete(':id')
-  @ApiResponse({ status: 200, description: 'Xóa thành công' })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy' })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200 })
   remove(@Param('id') id: string) {
     const scheduleId = parseInt(id);
     return this.schedulesService.remove(scheduleId);

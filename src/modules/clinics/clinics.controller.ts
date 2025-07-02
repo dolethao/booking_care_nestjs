@@ -7,7 +7,7 @@ import {
   Param,
   Delete,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiResponse } from '@nestjs/swagger';
 import { ClinicsService } from './clinics.service';
 import { CreateClinicDto } from './dto/create-clinic.dto';
 import { UpdateClinicDto } from './dto/update-clinic.dto';
@@ -19,36 +19,36 @@ export class ClinicsController {
   constructor(private readonly clinicsService: ClinicsService) {}
 
   @Post()
-  @ApiResponse({ status: 201, description: 'Tạo thành công', type: CreateClinicDto })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 201, type: CreateClinicDto })
   create(@Body() createClinicDto: CreateClinicDto) {
     return this.clinicsService.create(createClinicDto);
   }
 
   @Get()
-  @ApiResponse({ status: 200, description: 'Thành công', type: [Clinic] })
+  @ApiResponse({ status: 200, type: [Clinic] })
   findAll() {
     return this.clinicsService.findAll();
   }
 
   @Get(':id')
-  @ApiResponse({ status: 200, description: 'Thành công', type: Clinic })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy' })
+  @ApiResponse({ status: 200, type: Clinic })
   findOne(@Param('id') id: string) {
     const clinicId = parseInt(id);
     return this.clinicsService.findOne(clinicId);
   }
 
   @Patch(':id')
-  @ApiResponse({ status: 200, description: 'Cập nhật thành công', type: UpdateClinicDto })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy' })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, type: UpdateClinicDto })
   update(@Param('id') id: string, @Body() updateClinicDto: UpdateClinicDto) {
     const clinicId = parseInt(id);
     return this.clinicsService.update(clinicId, updateClinicDto);
   }
 
   @Delete(':id')
-  @ApiResponse({ status: 200, description: 'Xóa thành công' })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy' })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200 })
   remove(@Param('id') id: string) {
     const clinicId = parseInt(id);
     return this.clinicsService.remove(clinicId);

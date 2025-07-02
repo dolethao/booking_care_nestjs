@@ -7,7 +7,7 @@ import {
   Param,
   Delete,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { MarkdownsService } from './markdowns.service';
 import { CreateMarkdownDto } from './dto/create-markdown.dto';
 import { UpdateMarkdownDto } from './dto/update-markdown.dto';
@@ -19,36 +19,38 @@ export class MarkdownsController {
   constructor(private readonly markdownsService: MarkdownsService) {}
 
   @Post()
-  @ApiResponse({ status: 201, description: 'Tạo thành công', type: CreateMarkdownDto })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 201, type: CreateMarkdownDto })
   create(@Body() createMarkdownDto: CreateMarkdownDto) {
     return this.markdownsService.create(createMarkdownDto);
   }
 
   @Get()
-  @ApiResponse({ status: 200, description: 'Thành công', type: [Markdown] })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, type: [Markdown] })
   findAll() {
     return this.markdownsService.findAll();
   }
 
   @Get(':id')
-  @ApiResponse({ status: 200, description: 'Thành công', type: Markdown })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy' })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, type: Markdown })
   findOne(@Param('id') id: string) {
     const markdownId = parseInt(id);
     return this.markdownsService.findOne(markdownId);
   }
 
   @Patch(':id')
-  @ApiResponse({ status: 200, description: 'Cập nhật thành công', type: UpdateMarkdownDto })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy' })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200, type: UpdateMarkdownDto })
   update(@Param('id') id: string, @Body() updateMarkdownDto: UpdateMarkdownDto) {
     const markdownId = parseInt(id);
     return this.markdownsService.update(markdownId, updateMarkdownDto);
   }
 
   @Delete(':id')
-  @ApiResponse({ status: 200, description: 'Xóa thành công' })
-  @ApiResponse({ status: 404, description: 'Không tìm thấy' })
+  @ApiBearerAuth()
+  @ApiResponse({ status: 200 })
   remove(@Param('id') id: string) {
     const markdownId = parseInt(id);
     return this.markdownsService.remove(markdownId);
